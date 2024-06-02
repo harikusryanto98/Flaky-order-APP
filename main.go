@@ -55,19 +55,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			<title>Login</title>
 		</head>
 		<body>
-			<br>Login</h2>
+			<h2>Silakan masuk untuk melanjutkan:</h2>
 			<form action="/login" method="post">
-				<div>
-					<label>Username:</label>
-					<input type="text" name="username">
-				</div>
-				<div>
-					<label>Password:</label>
-					<input type="password" name="password">
-				</div>
-				<div>
-					<input type="submit" value="Login">
-				</div>
+				<label for="username">Username:</label><br>
+				<input type="text" id="username" name="username"><br>
+				<label for="password">Password:</label><br>
+				<input type="password" id="password" name="password"><br><br>
+				<input type="submit" value="Login">
 			</form>
 		</body>
 		</html>
@@ -90,7 +84,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, "<html><body>")
-	fmt.Fprintf(w, "Hello, %s! Available products:<br>", username)
+	balance := balances[username]
+	fmt.Fprintf(w, "Hello, %s!<br> Your balance: $%.2f<br><br>", username, balance)
 	fmt.Fprintf(w, "<ul>")
 	for product, price := range products {
 		fmt.Fprintf(w, "<li>%s: $%.2f <a href=\"/add_to_cart/%s\">Add to cart</a></li>", product, price, product)
@@ -153,7 +148,14 @@ func checkoutHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		total += price * float64(quantity)
 	}
+
+	if balances[username] < total {
+		http.Error(w, "Insufficient balance", http.StatusPaymentRequired)
+		return
+	}
+
 	balances[username] -= total
+	delete(cart, username) // Kosongkan keranjang setelah checkout
 	w.Header().Set("Content-Type", "text/html")
 	fmt.Fprintf(w, "<html><body>")
 	fmt.Fprintf(w, "</ul>")
